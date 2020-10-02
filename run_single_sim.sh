@@ -22,13 +22,14 @@ export METACONTROL_WS_PATH
 ####
 #  Default values, set if no parameters are given
 ####
-
+declare -a configs=("dwa_v0_a0_b0" "dwa_v0_a1_b0" "dwa_v0_a1_b1" "dwa_v0_a0_b1" "dwa_v1_a0_b0" "dwa_v1_a1_b0" "dwa_v1_a1_b1" "dwa_v1_a0_b1" "teb_v0_a0_b0" "teb_v0_a1_b0" "teb_v0_a1_b1" "teb_v0_a0_b1" "teb_v1_a0_b0" "teb_v1_a1_b0" "teb_v1_a1_b1" "teb_v1_a0_b1" )
+# declare -a configs=("dwa_v0_a0_b0" "teb_v0_a0_b0")
 ## Define initial navigation profile
 # Possible values ("fast" "standard" "safe")
 # also any of the fx_vX_rX metacontrol configurations
 #declare nav_profile="fast"
 #declare nav_profile="safe"
-declare nav_profile="f1_v1_r1"
+declare nav_profile="teb_v0_a0_b0"
 
 ## Define initial position
 # Possible values (1, 2, 3)
@@ -40,6 +41,7 @@ declare goal_position="2"
 
 ## Wheter or not to launch reconfiguration (true, false)
 declare launch_reconfiguration="false"
+declare qa_updater="true"
 
 ## nfr energy threshold ([0 - 1])
 declare nfr_energy="0.7"
@@ -147,6 +149,19 @@ echo "Launch roscore"
 gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash; roscore; exit"
 #Sleep Needed to allow other launchers to recognize the roscore
 sleep 3
+if [ "$qa_updater" = true ] ; then
+	echo "Launching: qa updater"
+	gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash;
+	echo 'Launching: qa updater'
+	rosrun mros_quality_models quality_update.py;
+	echo 'mros qa updater finished';
+	exit"
+	sleep 2
+	for config in ${configs[@]} ; do
+		bash -c "
+		rosservice call /load_safety_model \"name: '$config'\""
+	done
+fi
 echo "Launching: MVP metacontrol world.launch"
 gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash;
 rosparam set /desired_configuration \"$nav_profile\";
@@ -157,11 +172,12 @@ exit"
 if [ "$launch_reconfiguration" = true ] ; then
 	echo "Launching: mros reasoner"
 	gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash;
-	roslaunch mros1_reasoner run.launch onto:=$(rospack find mros1_reasoner)/scripts/kb.owl;
+	roslaunch mros1_reasoner run.launch model:=$(rospack find mros1_reasoner)/scripts/kb_nav_quality.owl desired_configuration:=$nav_profile nfr_energy:=$nfr_energy nfr_safety:=$nfr_safety;
 	echo 'mros reasoner finished';
 	if [ '$close_reasoner_terminal' = false ] ; then read -rsn 1 -p 'Press any key to close this terminal...' echo; fi
 	exit"
 fi
+
 
 echo "Running log and stop simulation node"
 bash -ic "source $METACONTROL_WS_PATH/devel/setup.bash;
