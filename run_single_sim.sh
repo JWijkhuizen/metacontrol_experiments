@@ -23,21 +23,11 @@ export METACONTROL_WS_PATH
 #  Default values, set if no parameters are given
 ####
 declare -a configs=("dwa_v0_a0_b0" "dwa_v0_a1_b0" "dwa_v0_a1_b1" "dwa_v0_a0_b1" "dwa_v1_a0_b0" "dwa_v1_a1_b0" "dwa_v1_a1_b1" "dwa_v1_a0_b1" "teb_v0_a0_b0" "teb_v0_a1_b0" "teb_v0_a1_b1" "teb_v0_a0_b1" "teb_v1_a0_b0" "teb_v1_a1_b0" "teb_v1_a1_b1" "teb_v1_a0_b1" )
-# declare -a configs=("dwa_v0_a0_b0" "teb_v0_a0_b0")
-## Define initial navigation profile
-# Possible values ("fast" "standard" "safe")
-# also any of the fx_vX_rX metacontrol configurations
-#declare nav_profile="fast"
-#declare nav_profile="safe"
+
 declare nav_profile="teb_v0_a0_b0"
 
-## Define initial position
-# Possible values (1, 2, 3)
-declare init_position="1"
-
-## Define goal position
-# Possible values (1, 2, 3)
-declare goal_position="2"
+declare init_pos_x=0
+declare init_pos_y=0
 
 ## Wheter or not to launch reconfiguration (true, false)
 declare launch_reconfiguration="false"
@@ -132,23 +122,23 @@ kill_running_ros_nodes () {
 echo "Make sure there is no other gazebo instances or ROS nodes running:"
 
 # Check that there are not running ros nodes
-kill_running_ros_nodes
+# kill_running_ros_nodes
 # If gazebo is running, it may take a while to end
-wait_for_gzserver_to_end
+# wait_for_gzserver_to_end
 
 # Get x and y initial position from yaml file - takes some creativity :)
-declare init_pos_x=$(cat $METACONTROL_WS_PATH/src/metacontrol_experiments/yaml/initial_positions.yaml | grep S$init_position -A 5 | tail -n 1 | cut -c 10-)
-declare init_pos_y=$(cat $METACONTROL_WS_PATH/src/metacontrol_experiments/yaml/initial_positions.yaml | grep S$init_position -A 6 | tail -n 1 | cut -c 10-)
+# declare init_pos_x=$(cat $METACONTROL_WS_PATH/src/metacontrol_experiments/yaml/initial_positions.yaml | grep S$init_position -A 5 | tail -n 1 | cut -c 10-)
+# declare init_pos_y=$(cat $METACONTROL_WS_PATH/src/metacontrol_experiments/yaml/initial_positions.yaml | grep S$init_position -A 6 | tail -n 1 | cut -c 10-)
 
-cat $METACONTROL_WS_PATH/src/metacontrol_experiments/yaml/goal_positions.yaml | grep G$goal_position -A 12 | tail -n 12 > $METACONTROL_WS_PATH/src/metacontrol_sim/yaml/goal.yaml
+# cat $METACONTROL_WS_PATH/src/metacontrol_experiments/yaml/goal_positions.yaml | grep G$goal_position -A 12 | tail -n 12 > $METACONTROL_WS_PATH/src/metacontrol_sim/yaml/goal.yaml
 
 echo ""
 echo "Start a new simulation - Goal position: $goal_position - Initial position  $init_position - Navigation profile: $nav_profile"
 echo ""
-echo "Launch roscore"
-gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash; roscore; exit"
+# echo "Launch roscore"
+# gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash; roscore; exit"
 #Sleep Needed to allow other launchers to recognize the roscore
-sleep 3
+# sleep 3
 if [ "$qa_updater" = true ] ; then
 	echo "Launching: qa updater"
 	gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash;
@@ -162,12 +152,12 @@ if [ "$qa_updater" = true ] ; then
 		rosservice call /load_safety_model \"name: '$config'\""
 	done
 fi
-echo "Launching: MVP metacontrol world.launch"
+# echo "Launching: MVP metacontrol world.launch"
 gnome-terminal --window --geometry=80x24+10+10 -- bash -c "source $METACONTROL_WS_PATH/devel/setup.bash;
 rosparam set /desired_configuration \"$nav_profile\";
 rosparam set /nfr_energy \"$nfr_energy\";
 rosparam set /nfr_safety \"$nfr_safety\";
-roslaunch metacontrol_sim MVP_metacontrol_world.launch nav_profile:=$nav_profile initial_pose_x:=$init_pos_x initial_pose_y:=$init_pos_y;
+roslaunch metacontrol_sim jasper_metacontrol_world.launch nav_profile:=$nav_profile initial_pose_x:=$init_pos_x initial_pose_y:=$init_pos_y;
 exit"
 if [ "$launch_reconfiguration" = true ] ; then
 	echo "Launching: mros reasoner"
